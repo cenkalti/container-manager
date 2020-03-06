@@ -4,13 +4,14 @@ import (
 	"context"
 	"log"
 	"os"
-	"reflect"
 	"sync"
 	"time"
 
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/client"
 )
+
+const containerVersionKey = "com.cenkalti.container-manager.container-version"
 
 var ctx = context.TODO()
 
@@ -77,8 +78,7 @@ func (m *Manager) doReload() {
 	newDef := getContainerDefinion(m.name)
 	if newDef == nil {
 		m.log.Println("removing deleted container")
-		timeout := time.Duration(m.definition.StopTimeout) * time.Second
-		err := cli.ContainerStop(ctx, m.name, &timeout)
+		err := cli.ContainerStop(ctx, m.name, nil)
 		if err != nil {
 			m.log.Println("cannot stop container:", err.Error())
 			return
@@ -94,7 +94,7 @@ func (m *Manager) doReload() {
 		m.doClose()
 		return
 	}
-	if reflect.DeepEqual(m.definition, *newDef) {
+	if con.Config.Labels[containerVersionKey] == (*newDef).Version {
 		if !con.State.Running {
 			m.log.Println("container not running, starting container")
 			err = cli.ContainerStart(ctx, con.ID, types.ContainerStartOptions{})
@@ -107,8 +107,7 @@ func (m *Manager) doReload() {
 	}
 	m.log.Println("container definition changed, reloading")
 	if con.State.Running {
-		timeout := time.Duration(m.definition.StopTimeout) * time.Second
-		err := cli.ContainerStop(ctx, con.ID, &timeout)
+		err := cli.ContainerStop(ctx, con.ID, nil)
 		if err != nil {
 			m.log.Println("cannot stop container:", err.Error())
 			return

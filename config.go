@@ -19,17 +19,17 @@ type Config struct {
 }
 
 type Container struct {
+	Version     string
 	Image       string
 	WorkingDir  string
 	Entrypoint  []string
-	Command     []string
+	Cmd         []string
 	StopSignal  string
-	StopTimeout int
+	StopTimeout *int
 	NetworkMode string
-	Environment map[string]string
+	Env         []string
 	Binds       []string
 	DNS         []string
-	Labels      map[string]string
 }
 
 func (c *Config) setDefaults() {
@@ -68,22 +68,20 @@ func getContainerDefinion(name string) *Container {
 }
 
 func (c *Container) containerConfig(name string) *container.Config {
-	env := make([]string, 0, len(c.Environment))
-	for k, v := range c.Environment {
-		env = append(env, k+"="+v)
-	}
 	return &container.Config{
 		Hostname:     name,
-		AttachStdout: true,           // Attach the standard output
-		AttachStderr: true,           // Attach the standard error
-		Env:          env,            // List of environment variable to set in the container
-		Cmd:          c.Command,      // Command to run when starting the container
-		Image:        c.Image,        // Name of the image as it was passed by the operator (e.g. could be symbolic)
-		WorkingDir:   c.WorkingDir,   // Current directory (PWD) in the command will be launched
-		Entrypoint:   c.Entrypoint,   // Entrypoint to run when starting the container
-		StopSignal:   c.StopSignal,   // Signal to stop a container
-		StopTimeout:  &c.StopTimeout, // Timeout (in seconds) to stop a container
-		Labels:       c.Labels,       // List of labels set to this container
+		AttachStdout: true,          // Attach the standard output
+		AttachStderr: true,          // Attach the standard error
+		Env:          c.Env,         // List of environment variable to set in the container
+		Cmd:          c.Cmd,         // Command to run when starting the container
+		Image:        c.Image,       // Name of the image as it was passed by the operator (e.g. could be symbolic)
+		WorkingDir:   c.WorkingDir,  // Current directory (PWD) in the command will be launched
+		Entrypoint:   c.Entrypoint,  // Entrypoint to run when starting the container
+		StopSignal:   c.StopSignal,  // Signal to stop a container
+		StopTimeout:  c.StopTimeout, // Timeout (in seconds) to stop a container
+		Labels: map[string]string{
+			containerVersionKey: c.Version,
+		}, // List of labels set to this container
 	}
 }
 
