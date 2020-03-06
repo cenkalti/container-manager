@@ -83,7 +83,7 @@ func (m *Manager) doReload() {
 			m.log.Println("cannot stop container:", err.Error())
 			return
 		}
-		err = cli.ContainerRemove(ctx, m.name, types.ContainerRemoveOptions{})
+		err = cli.ContainerRemove(ctx, m.name, types.ContainerRemoveOptions{Force: true})
 		if err != nil {
 			m.log.Println("cannot remove container:", err.Error())
 			return
@@ -103,8 +103,34 @@ func (m *Manager) doReload() {
 				return
 			}
 		}
-	} else {
-		// TODO stop & remove old conntainer, create & start new container
+		return
+	}
+	m.log.Println("container definition changed, reloading")
+	if con.State.Running {
+		timeout := time.Duration(m.definition.StopTimeout) * time.Second
+		err := cli.ContainerStop(ctx, con.ID, &timeout)
+		if err != nil {
+			m.log.Println("cannot stop container:", err.Error())
+			return
+		}
+	}
+	err = cli.ContainerRemove(ctx, con.ID, types.ContainerRemoveOptions{Force: true})
+	if err != nil {
+		m.log.Println("cannot remove container:", err.Error())
+		return
+	}
+	m.definition = *newDef
+	conCfg := m.definition.containerConfig(m.name)
+	hostCfg := m.definition.hostConfig()
+	resp, err := cli.ContainerCreate(ctx, conCfg, hostCfg, nil, m.name)
+	if err != nil {
+		m.log.Println("cannot create container:", err.Error())
+		return
+	}
+	err = cli.ContainerStart(ctx, resp.ID, types.ContainerStartOptions{})
+	if err != nil {
+		m.log.Println("cannot start container:", err.Error())
+		return
 	}
 }
 
