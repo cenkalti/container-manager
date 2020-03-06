@@ -92,7 +92,7 @@ func (m *Manager) doReload() {
 		m.doClose()
 		return
 	}
-	if con.Config.Labels[containerVersionKey] == (*newDef).Version {
+	if con.Config.Labels[containerVersionKey] == newDef.Version {
 		if !con.State.Running {
 			m.log.Println("container not running, starting container")
 			err = cli.ContainerStart(ctx, con.ID, types.ContainerStartOptions{})

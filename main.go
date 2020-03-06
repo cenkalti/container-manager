@@ -12,13 +12,15 @@ import (
 	"github.com/docker/docker/client"
 )
 
-// TODO client timeout
+// TODO set client timeout
 // TODO cancel running operations on on exit with context
 // TODO run multiple containers of same name
 // TODO implement deploy policy
 // TODO health check endpoint
 // TODO prometheus exporter
 // TODO http api
+
+const errExitCode = 1
 
 // Version of client. Set during build.
 // "0.0.0" is the development version.
@@ -47,7 +49,7 @@ func main() {
 	cli, err = client.NewEnvClient()
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "cannot create docker client:", err.Error())
-		os.Exit(1)
+		os.Exit(errExitCode)
 	}
 
 	chanReload := make(chan os.Signal, 1)
@@ -74,7 +76,7 @@ func reload() {
 	err := readConfig()
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "cannot read config:", err.Error())
-		os.Exit(1)
+		os.Exit(errExitCode)
 	}
 	reloadContainers()
 }

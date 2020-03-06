@@ -9,6 +9,8 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
+const defaultCheckInterval = 60 * time.Second
+
 var cfg Config
 
 type Config struct {
@@ -34,7 +36,7 @@ type Container struct {
 
 func (c *Config) setDefaults() {
 	if c.CheckInterval <= 0 {
-		c.CheckInterval = 60 * time.Second
+		c.CheckInterval = defaultCheckInterval
 	}
 }
 
@@ -62,9 +64,8 @@ func getContainerDefinion(name string) *Container {
 	defer mu.Unlock()
 	if c, ok := cfg.Containers[name]; ok {
 		return &c
-	} else {
-		return nil
 	}
+	return nil
 }
 
 func (c *Container) containerConfig(name string) *container.Config {
