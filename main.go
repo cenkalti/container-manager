@@ -12,12 +12,13 @@ import (
 	"github.com/docker/docker/client"
 )
 
+// TODO client timeout
+// TODO cancel running operations on on exit with context
 // TODO run multiple containers of same name
+// TODO implement deploy policy
 // TODO health check endpoint
 // TODO prometheus exporter
 // TODO http api
-// TODO client timeout
-// TODO cancel running operations on on exit with context
 
 // Version of client. Set during build.
 // "0.0.0" is the development version.
