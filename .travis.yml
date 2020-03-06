@@ -1,0 +1,25 @@
+dist: xenial
+language: go
+go: "1.13.x"
+env:
+  - GO111MODULE=on
+cache:
+  directories:
+    - $GOPATH/pkg/mod
+    - $HOME/.cache/go-build
+install: true
+before_script:
+- curl -sfL https://install.goreleaser.com/github.com/golangci/golangci-lint.sh | sh -s -- -b $(go env GOPATH)/bin v1.23.8
+- GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -ldflags="-s -w -X main.Version=$TRAVIS_TAG"
+script:
+- golangci-lint run
+- go test -race ./...
+deploy:
+- provider: releases
+  skip_cleanup: true
+  file: container-manager
+  on:
+    repo: cenkalti/container-manager
+    tags: true
+  api_key:
+    secure: oi1ALXBsIUhqy/j0RncvT6L1rHGBXO0mJFE9OJPZ1hVJYrluL2XbS4a/oOV3PAQ0ajV29OekB0MCih+hHP8qTTWpbzAITo6MrbvMSNbcDOHM7+FM9dfMBH7NgvUMLZxZlapZinzYxMjvyy1MZlpzcuMHfV7K2Va205NkfAq9YSbCDsywKzPTC1ByoKnkcwUzwk5n7hHQ9dsEeTdT7AMmCFr9DzORVZOtMZpPRBhOnz+DwXnw9PIAK9zNXPgAwHscJMrYX9hZo4zcvtVo6Aj7bB9Bl0zAo2BbEu94/3KcCA/584yGK3LyFDeUVQ+CRx4Rj/XVD0+RH4hX9iOHGI4yLyET9cHJsSpyKQ1hM6DFrhCtzIxyvMh0IyPqdkgzjiwuLDIIQ9E/Mkfxn1pcNxYKmNNK9wdSgdeB461v2E/rSDcZddq0DQNK7yafcwWoT1TF+M9j2F3WIxh/G+dNlKch0wmxFlc9noYSUEcgMVICUZv3QQ0rWS48QEjckqXFFb89nnZdxXOVIkTP+p+qkma+e9dr1nUaFs56OJqszRArljEpcT445NvK+Ncyhc2c0XsTLtYVJLz1TJhHeZfFhAAl9cEtvKCO3WSeYhjRu1uz43x8tNmJmHHFasKTA9YIVDrl+cXTHW5CSi+mEYNGJx4u63AMy76TUFl926/DzUdx7jg=
