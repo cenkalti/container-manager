@@ -57,9 +57,7 @@ func (m *Manager) doReload() {
 	con, err := cli.ContainerInspect(ctx, m.name)
 	if client.IsErrNotFound(err) {
 		m.log.Println("container not found, creating container")
-		conCfg := m.definition.containerConfig(m.name)
-		hostCfg := m.definition.hostConfig()
-		resp, err := cli.ContainerCreate(ctx, conCfg, hostCfg, nil, m.name)
+		resp, err := cli.ContainerCreate(ctx, m.definition.containerConfig(m.name), m.definition.hostConfig(), nil, m.name)
 		if err != nil {
 			m.log.Println("cannot create container:", err.Error())
 			return
@@ -119,9 +117,7 @@ func (m *Manager) doReload() {
 		return
 	}
 	m.definition = *newDef
-	conCfg := m.definition.containerConfig(m.name)
-	hostCfg := m.definition.hostConfig()
-	resp, err := cli.ContainerCreate(ctx, conCfg, hostCfg, nil, m.name)
+	resp, err := cli.ContainerCreate(ctx, m.definition.containerConfig(m.name), m.definition.hostConfig(), nil, m.name)
 	if err != nil {
 		m.log.Println("cannot create container:", err.Error())
 		return
