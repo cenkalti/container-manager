@@ -19,18 +19,17 @@ type Config struct {
 }
 
 type Container struct {
-	Image         string
-	WorkingDir    string
-	Entrypoint    []string
-	Command       []string
-	StopSignal    string
-	StopTimeout   int
-	RestartPolicy string
-	NetworkMode   string
-	Environment   map[string]string
-	Binds         []string
-	DNS           []string
-	Labels        map[string]string
+	Image       string
+	WorkingDir  string
+	Entrypoint  []string
+	Command     []string
+	StopSignal  string
+	StopTimeout int
+	NetworkMode string
+	Environment map[string]string
+	Binds       []string
+	DNS         []string
+	Labels      map[string]string
 }
 
 func (c *Config) setDefaults() {
@@ -82,16 +81,17 @@ func (c *Container) containerConfig(name string) *container.Config {
 		Image:        c.Image,        // Name of the image as it was passed by the operator (e.g. could be symbolic)
 		WorkingDir:   c.WorkingDir,   // Current directory (PWD) in the command will be launched
 		Entrypoint:   c.Entrypoint,   // Entrypoint to run when starting the container
-		Labels:       c.Labels,       // List of labels set to this container
 		StopSignal:   c.StopSignal,   // Signal to stop a container
 		StopTimeout:  &c.StopTimeout, // Timeout (in seconds) to stop a container
+		Labels:       c.Labels,       // List of labels set to this container
 	}
 }
 
 func (c *Container) hostConfig() *container.HostConfig {
 	return &container.HostConfig{
-		Binds:       c.Binds,                              // List of volume bindings for this container
-		NetworkMode: container.NetworkMode(c.NetworkMode), // Network mode to use for the container
-		DNS:         c.DNS,                                // List of DNS server to lookup
+		Binds:         c.Binds,                              // List of volume bindings for this container
+		NetworkMode:   container.NetworkMode(c.NetworkMode), // Network mode to use for the container
+		DNS:           c.DNS,                                // List of DNS server to lookup
+		RestartPolicy: container.RestartPolicy{Name: "always"},
 	}
 }
