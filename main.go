@@ -19,6 +19,7 @@ import (
 // TODO health check endpoint
 // TODO prometheus exporter
 // TODO http api
+// TODO specify LogPath
 
 const errExitCode = 1
 
