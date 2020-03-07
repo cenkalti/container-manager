@@ -19,7 +19,7 @@ import (
 // TODO health check endpoint
 // TODO prometheus exporter
 // TODO http api
-// TODO specify LogPath
+// TODO send log messages to journald
 
 const errExitCode = 1
 
