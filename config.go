@@ -35,6 +35,7 @@ type Container struct {
 	NetworkMode string
 	Env         map[string]string
 	Binds       []string
+	LogConfig   container.LogConfig
 }
 
 func (c *Config) setDefaults() {

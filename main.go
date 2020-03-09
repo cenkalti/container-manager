@@ -17,8 +17,6 @@ import (
 	"github.com/docker/docker/client"
 )
 
-// TODO send log messages to journald
-
 const errExitCode = 1
 
 // Version of client. Set during build.
