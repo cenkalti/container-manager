@@ -12,6 +12,7 @@ import (
 	"github.com/docker/docker/client"
 )
 
+// TODO remove stale containers on startup
 // TODO implement deploy policy
 // TODO health check endpoint
 // TODO prometheus exporter
