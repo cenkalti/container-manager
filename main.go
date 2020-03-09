@@ -34,6 +34,7 @@ var (
 	managers = make(map[string]*Manager)
 	cli      *client.Client
 	mu       sync.Mutex
+	httpErrC = make(chan error, 1)
 )
 
 func main() {
@@ -54,11 +55,7 @@ func main() {
 	reload() // for initial loading of config & starting of containers
 
 	http.HandleFunc("/health", handleHealth)
-	err = http.ListenAndServe(cfg.ListenAddr, nil)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, "cannot serve http:", err.Error())
-		os.Exit(errExitCode)
-	}
+	go runHTTPServer()
 
 	chanReload := make(chan os.Signal, 1)
 	signal.Notify(chanReload, syscall.SIGHUP)
@@ -68,7 +65,16 @@ func main() {
 			reload()
 		case <-time.After(cfg.CheckInterval):
 			reloadContainers()
+		case err = <-httpErrC:
+			fmt.Fprintln(os.Stderr, "cannot serve http:", err.Error())
+			os.Exit(errExitCode)
 		}
+	}
+}
+
+func runHTTPServer() {
+	if err := http.ListenAndServe(cfg.ListenAddr, nil); err != nil {
+		httpErrC <- err
 	}
 }
 
