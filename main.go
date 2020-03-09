@@ -12,7 +12,6 @@ import (
 	"github.com/docker/docker/client"
 )
 
-// TODO run multiple containers of same name
 // TODO implement deploy policy
 // TODO health check endpoint
 // TODO prometheus exporter
@@ -82,7 +81,7 @@ func reloadContainers() {
 		mgr.Reload()
 	}
 
-	for name, con := range cfg.Containers {
+	for name, con := range definitions {
 		if _, ok := managers[name]; !ok {
 			managers[name] = Manage(name, con)
 		}

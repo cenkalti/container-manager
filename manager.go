@@ -15,7 +15,7 @@ const containerVersionKey = "com.cenkalti.container-manager.container-version"
 
 type Manager struct {
 	name       string
-	definition Container
+	definition *Container
 	log        *log.Logger
 	closeC     chan struct{}
 	closedC    chan struct{}
@@ -24,7 +24,7 @@ type Manager struct {
 	reloadC    chan struct{}
 }
 
-func Manage(name string, c Container) *Manager {
+func Manage(name string, c *Container) *Manager {
 	m := &Manager{
 		name:       name,
 		definition: c,
@@ -123,7 +123,7 @@ func (m *Manager) doReload() {
 		m.log.Println("cannot remove container:", err.Error())
 		return
 	}
-	m.definition = *newDef
+	m.definition = newDef
 	m.log.Println("creating new container")
 	resp, err := cli.ContainerCreate(ctx, m.definition.containerConfig(m.name), m.definition.hostConfig(), nil, m.name)
 	if err != nil {

@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 	"os"
+	"strconv"
 	"time"
 
 	"github.com/docker/docker/api/types/container"
@@ -11,15 +12,19 @@ import (
 
 const defaultCheckInterval = 60 * time.Second
 
-var cfg Config
+var (
+	cfg         Config
+	definitions map[string]*Container
+)
 
 type Config struct {
-	Containers    map[string]Container
+	Containers    map[string]*Container
 	CheckInterval time.Duration
 }
 
 type Container struct {
 	Version     string
+	Count       uint
 	Image       string
 	WorkingDir  string
 	Entrypoint  []string
@@ -44,25 +49,36 @@ func readConfig() error {
 		return err
 	}
 	defer f.Close()
+
 	var c Config
 	err = yaml.NewDecoder(f).Decode(&c)
 	if err != nil {
 		return err
 	}
 	c.setDefaults()
+
 	mu.Lock()
+	defer mu.Unlock()
+
 	cfg = c
-	mu.Unlock()
+	definitions = make(map[string]*Container, len(cfg.Containers))
+	for name, con := range cfg.Containers {
+		if con.Count > 1 { // nolint: gomnd
+			for i := uint(0); i < con.Count; i++ {
+				const containerIndexStart = 1
+				definitions[name+"-"+strconv.FormatUint(uint64(i+containerIndexStart), 10)] = con
+			}
+		} else {
+			definitions[name] = con
+		}
+	}
 	return nil
 }
 
 func getContainerDefinion(name string) *Container {
 	mu.Lock()
 	defer mu.Unlock()
-	if c, ok := cfg.Containers[name]; ok {
-		return &c
-	}
-	return nil
+	return definitions[name]
 }
 
 func (c *Container) containerConfig(name string) *container.Config {
