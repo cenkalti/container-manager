@@ -80,7 +80,7 @@ func (m *Manager) doReload() {
 	newDef := getContainerDefinion(m.name)
 	if newDef == nil {
 		m.log.Println("container definition not found, stopping container")
-		err := cli.ContainerStop(ctx, m.name, nil)
+		err = cli.ContainerStop(ctx, m.name, nil)
 		if err != nil {
 			m.log.Println("cannot stop container:", err.Error())
 			return
@@ -111,7 +111,7 @@ func (m *Manager) doReload() {
 	m.log.Println("container definition changed, reloading")
 	if con.State.Running {
 		m.log.Println("stopping old container")
-		err := cli.ContainerStop(ctx, m.name, nil)
+		err = cli.ContainerStop(ctx, m.name, nil)
 		if err != nil {
 			m.log.Println("cannot stop container:", err.Error())
 			return
