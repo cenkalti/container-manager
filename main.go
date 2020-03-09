@@ -17,7 +17,6 @@ import (
 	"github.com/docker/docker/client"
 )
 
-// TODO prometheus exporter
 // TODO send log messages to journald
 
 const errExitCode = 1
