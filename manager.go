@@ -138,12 +138,6 @@ func (m *Manager) doReload() {
 	}
 }
 
-// Close the manager
-func (m *Manager) Close() {
-	m.doClose()
-	<-m.closedC
-}
-
 func (m *Manager) doClose() {
 	m.closeOnce.Do(func() {
 		m.closed = true

@@ -12,7 +12,6 @@ import (
 	"github.com/docker/docker/client"
 )
 
-// TODO cancel running operations on exit with context
 // TODO run multiple containers of same name
 // TODO implement deploy policy
 // TODO health check endpoint
@@ -53,19 +52,13 @@ func main() {
 	}
 
 	chanReload := make(chan os.Signal, 1)
-	chanTerm := make(chan os.Signal, 1)
 	signal.Notify(chanReload, syscall.SIGHUP)
-	signal.Notify(chanTerm, syscall.SIGTERM, syscall.SIGINT)
 
 	reload() // for initial loading of config & starting of containers
 	for {
 		select {
 		case <-chanReload:
 			reload()
-		case <-chanTerm:
-			// Close container-manager gracefully, leave running containers as they are.
-			closeManagers()
-			return
 		case <-time.After(cfg.CheckInterval):
 			reloadContainers()
 		}
@@ -93,14 +86,5 @@ func reloadContainers() {
 		if _, ok := managers[name]; !ok {
 			managers[name] = Manage(name, con)
 		}
-	}
-}
-
-func closeManagers() {
-	mu.Lock()
-	defer mu.Unlock()
-
-	for _, mgr := range managers {
-		mgr.Close()
 	}
 }
