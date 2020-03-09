@@ -12,7 +12,7 @@ import (
 	"github.com/docker/docker/client"
 )
 
-// TODO cancel running operations on on exit with context
+// TODO cancel running operations on exit with context
 // TODO run multiple containers of same name
 // TODO implement deploy policy
 // TODO health check endpoint
