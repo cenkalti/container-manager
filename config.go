@@ -16,7 +16,6 @@ var cfg Config
 type Config struct {
 	Containers    map[string]Container
 	CheckInterval time.Duration
-	// ClientTimeout time.Duration
 	// Namespace string
 }
 

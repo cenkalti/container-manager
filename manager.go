@@ -13,8 +13,6 @@ import (
 
 const containerVersionKey = "com.cenkalti.container-manager.container-version"
 
-var ctx = context.TODO()
-
 type Manager struct {
 	name       string
 	definition Container
@@ -22,6 +20,7 @@ type Manager struct {
 	closeC     chan struct{}
 	closedC    chan struct{}
 	closeOnce  sync.Once
+	closed     bool
 	reloadC    chan struct{}
 }
 
@@ -42,6 +41,9 @@ func Manage(name string, c Container) *Manager {
 func (m *Manager) run() {
 	defer close(m.closedC)
 	for {
+		if m.closed {
+			return
+		}
 		select {
 		case <-m.closeC:
 			return
@@ -54,14 +56,16 @@ func (m *Manager) run() {
 }
 
 func (m *Manager) doReload() {
+	ctx := context.Background()
 	con, err := cli.ContainerInspect(ctx, m.name)
 	if client.IsErrNotFound(err) {
-		m.log.Println("container not found, creating container")
+		m.log.Println("container not found, creating new container")
 		resp, err := cli.ContainerCreate(ctx, m.definition.containerConfig(m.name), m.definition.hostConfig(), nil, m.name)
 		if err != nil {
 			m.log.Println("cannot create container:", err.Error())
 			return
 		}
+		m.log.Println("starting new container")
 		err = cli.ContainerStart(ctx, resp.ID, types.ContainerStartOptions{})
 		if err != nil {
 			m.log.Println("cannot start container:", err.Error())
@@ -75,12 +79,13 @@ func (m *Manager) doReload() {
 	}
 	newDef := getContainerDefinion(m.name)
 	if newDef == nil {
-		m.log.Println("removing deleted container")
+		m.log.Println("container definition not found, stopping container")
 		err := cli.ContainerStop(ctx, m.name, nil)
 		if err != nil {
 			m.log.Println("cannot stop container:", err.Error())
 			return
 		}
+		m.log.Println("removing stale container")
 		err = cli.ContainerRemove(ctx, m.name, types.ContainerRemoveOptions{Force: true})
 		if err != nil {
 			m.log.Println("cannot remove container:", err.Error())
@@ -105,23 +110,27 @@ func (m *Manager) doReload() {
 	}
 	m.log.Println("container definition changed, reloading")
 	if con.State.Running {
-		err := cli.ContainerStop(ctx, con.ID, nil)
+		m.log.Println("stopping old container")
+		err := cli.ContainerStop(ctx, m.name, nil)
 		if err != nil {
 			m.log.Println("cannot stop container:", err.Error())
 			return
 		}
 	}
+	m.log.Println("removing old container")
 	err = cli.ContainerRemove(ctx, con.ID, types.ContainerRemoveOptions{Force: true})
 	if err != nil {
 		m.log.Println("cannot remove container:", err.Error())
 		return
 	}
 	m.definition = *newDef
+	m.log.Println("creating new container")
 	resp, err := cli.ContainerCreate(ctx, m.definition.containerConfig(m.name), m.definition.hostConfig(), nil, m.name)
 	if err != nil {
 		m.log.Println("cannot create container:", err.Error())
 		return
 	}
+	m.log.Println("starting new container")
 	err = cli.ContainerStart(ctx, resp.ID, types.ContainerStartOptions{})
 	if err != nil {
 		m.log.Println("cannot start container:", err.Error())
@@ -136,7 +145,10 @@ func (m *Manager) Close() {
 }
 
 func (m *Manager) doClose() {
-	m.closeOnce.Do(func() { close(m.closeC) })
+	m.closeOnce.Do(func() {
+		m.closed = true
+		close(m.closeC)
+	})
 }
 
 // Reload the definition from config and make necessary changes to container

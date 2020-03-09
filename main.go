@@ -12,7 +12,6 @@ import (
 	"github.com/docker/docker/client"
 )
 
-// TODO set client timeout
 // TODO cancel running operations on on exit with context
 // TODO run multiple containers of same name
 // TODO implement deploy policy
