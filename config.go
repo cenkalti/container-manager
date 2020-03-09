@@ -20,6 +20,7 @@ var (
 type Config struct {
 	Containers    map[string]*Container
 	CheckInterval time.Duration
+	ListenAddr    string
 }
 
 type Container struct {
@@ -39,6 +40,9 @@ type Container struct {
 func (c *Config) setDefaults() {
 	if c.CheckInterval <= 0 {
 		c.CheckInterval = defaultCheckInterval
+	}
+	if c.ListenAddr == "" {
+		c.ListenAddr = "127.0.0.1:26662"
 	}
 }
 
@@ -111,6 +115,6 @@ func (c *Container) hostConfig() *container.HostConfig {
 	return &container.HostConfig{
 		Binds:         c.Binds,                              // List of volume bindings for this container
 		NetworkMode:   container.NetworkMode(c.NetworkMode), // Network mode to use for the container
-		RestartPolicy: container.RestartPolicy{Name: "always"},
+		RestartPolicy: container.RestartPolicy{Name: "unless-stopped"},
 	}
 }

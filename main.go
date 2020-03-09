@@ -1,20 +1,22 @@
 package main
 
 import (
+	"encoding/json"
 	"flag"
 	"fmt"
+	"net/http"
 	"os"
 	"os/signal"
 	"sync"
 	"syscall"
 	"time"
 
+	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/client"
 )
 
-// TODO health check endpoint
+// TODO clean previous stale containers on startup
 // TODO prometheus exporter
-// TODO http api
 // TODO send log messages to journald
 
 const errExitCode = 1
@@ -49,10 +51,17 @@ func main() {
 		os.Exit(errExitCode)
 	}
 
+	reload() // for initial loading of config & starting of containers
+
+	http.HandleFunc("/health", handleHealth)
+	err = http.ListenAndServe(cfg.ListenAddr, nil)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "cannot serve http:", err.Error())
+		os.Exit(errExitCode)
+	}
+
 	chanReload := make(chan os.Signal, 1)
 	signal.Notify(chanReload, syscall.SIGHUP)
-
-	reload() // for initial loading of config & starting of containers
 	for {
 		select {
 		case <-chanReload:
@@ -61,6 +70,38 @@ func main() {
 			reloadContainers()
 		}
 	}
+}
+
+func handleHealth(w http.ResponseWriter, r *http.Request) {
+	errors := make([]string, 0)
+	addError := func(s string) {
+		errors = append(errors, s)
+	}
+	defer func() {
+		w.Header().Set("content-type", "application/json")
+		if len(errors) > 0 {
+			w.WriteHeader(http.StatusInternalServerError)
+		}
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{"errors": errors})
+	}()
+	containers, err := cli.ContainerList(r.Context(), types.ContainerListOptions{})
+	if err != nil {
+		addError(err.Error())
+		return
+	}
+	running := make(map[string]struct{}, len(containers))
+	for _, con := range containers {
+		for _, name := range con.Names {
+			running[name] = struct{}{}
+		}
+	}
+	mu.Lock()
+	for name := range managers {
+		if _, ok := running["/"+name]; !ok {
+			addError("container not running: " + name)
+		}
+	}
+	mu.Unlock()
 }
 
 func reload() {
