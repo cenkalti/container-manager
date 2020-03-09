@@ -12,7 +12,6 @@ import (
 	"github.com/docker/docker/client"
 )
 
-// TODO implement deploy policy
 // TODO health check endpoint
 // TODO prometheus exporter
 // TODO http api
