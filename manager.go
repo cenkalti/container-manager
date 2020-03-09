@@ -22,9 +22,10 @@ type Manager struct {
 	closeOnce  sync.Once
 	closed     bool
 	reloadC    chan struct{}
+	remove     bool
 }
 
-func Manage(name string, c *Container) *Manager {
+func Manage(name string, c *Container, remove bool) *Manager {
 	m := &Manager{
 		name:       name,
 		definition: c,
@@ -32,6 +33,7 @@ func Manage(name string, c *Container) *Manager {
 		closeC:     make(chan struct{}),
 		closedC:    make(chan struct{}),
 		reloadC:    make(chan struct{}, 1),
+		remove:     remove,
 	}
 	m.reloadC <- struct{}{}
 	go m.run()
@@ -41,6 +43,9 @@ func Manage(name string, c *Container) *Manager {
 func (m *Manager) run() {
 	defer close(m.closedC)
 	for {
+		if m.remove {
+			m.doRemove()
+		}
 		if m.closed {
 			return
 		}
@@ -79,22 +84,7 @@ func (m *Manager) doReload() {
 	}
 	newDef := getContainerDefinion(m.name)
 	if newDef == nil {
-		m.log.Println("container definition not found, stopping container")
-		err = cli.ContainerStop(ctx, m.name, nil)
-		if err != nil {
-			m.log.Println("cannot stop container:", err.Error())
-			return
-		}
-		m.log.Println("removing stale container")
-		err = cli.ContainerRemove(ctx, m.name, types.ContainerRemoveOptions{Force: true})
-		if err != nil {
-			m.log.Println("cannot remove container:", err.Error())
-			return
-		}
-		mu.Lock()
-		delete(managers, m.name)
-		mu.Unlock()
-		m.doClose()
+		m.remove = true
 		return
 	}
 	if con.Config.Labels[containerVersionKey] == newDef.Version {
@@ -136,6 +126,24 @@ func (m *Manager) doReload() {
 		m.log.Println("cannot start container:", err.Error())
 		return
 	}
+}
+
+func (m *Manager) doRemove() {
+	m.log.Println("container definition not found, stopping container")
+	ctx := context.Background()
+	err := cli.ContainerStop(ctx, m.name, nil)
+	if err != nil {
+		m.log.Println("cannot stop container:", err.Error())
+	}
+	m.log.Println("removing stale container")
+	err = cli.ContainerRemove(ctx, m.name, types.ContainerRemoveOptions{Force: true})
+	if err != nil {
+		m.log.Println("cannot remove container:", err.Error())
+	}
+	mu.Lock()
+	delete(managers, m.name)
+	mu.Unlock()
+	m.doClose()
 }
 
 func (m *Manager) doClose() {

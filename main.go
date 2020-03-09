@@ -1,12 +1,14 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"flag"
 	"fmt"
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"sync"
 	"syscall"
 	"time"
@@ -15,7 +17,6 @@ import (
 	"github.com/docker/docker/client"
 )
 
-// TODO clean previous stale containers on startup
 // TODO prometheus exporter
 // TODO send log messages to journald
 
@@ -53,6 +54,12 @@ func main() {
 	}
 
 	reload() // for initial loading of config & starting of containers
+
+	err = removeStaleContainers()
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "cannot remove stale continers:", err.Error())
+		os.Exit(errExitCode)
+	}
 
 	http.HandleFunc("/health", handleHealth)
 	go runHTTPServer()
@@ -129,7 +136,41 @@ func reloadContainers() {
 
 	for name, con := range definitions {
 		if _, ok := managers[name]; !ok {
-			managers[name] = Manage(name, con)
+			managers[name] = Manage(name, con, false)
 		}
 	}
+}
+
+// Some containers left from previous runs may still be running.
+// If config is changed while container-manager is not running and some container definitions are removed from config, they remain in running state.
+// This function find those containers and remove them.
+func removeStaleContainers() error {
+	containers, err := cli.ContainerList(context.Background(), types.ContainerListOptions{All: true})
+	if err != nil {
+		return err
+	}
+	mu.Lock()
+	defer mu.Unlock()
+	for _, con := range containers {
+		if _, ok := con.Labels[containerVersionKey]; !ok {
+			// Container didn't get started by container-manager
+			continue
+		}
+		if inDefinitions(con.Names) {
+			// Container has a definition in config
+			continue
+		}
+		name := strings.TrimPrefix(con.Names[0], "/")
+		managers[name] = Manage(name, nil, true)
+	}
+	return nil
+}
+
+func inDefinitions(names []string) bool {
+	for _, name := range names {
+		if _, ok := definitions[strings.TrimPrefix(name, "/")]; ok {
+			return true
+		}
+	}
+	return false
 }
