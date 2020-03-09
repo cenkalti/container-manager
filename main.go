@@ -17,21 +17,35 @@ import (
 	"github.com/docker/docker/client"
 )
 
-const errExitCode = 1
+const (
+	errExitCode          = 1
+	defaultCheckInterval = 60 * time.Second
+	containerVersionKey  = "com.cenkalti.container-manager.container-version"
+)
 
 // Version of client. Set during build.
 // "0.0.0" is the development version.
 var Version = "0.0.0"
 
+// Command line flags
 var (
 	configPath   = flag.String("config", "/etc/container-manager.yaml", "config path")
 	printVersion = flag.Bool("version", false, "print program version")
 )
 
+// Global state
 var (
+	// Config file unmarshaled from YAML
+	cfg Config
+	// Contains container defintions from config after count adding "-<count>" postfix
+	definitions map[string]*Container
+	// Containers currently managed by the app
 	managers = make(map[string]*Manager)
-	cli      *client.Client
-	mu       sync.Mutex
+	// Docker daemon client
+	cli *client.Client
+	// Protects config and other global state
+	mu sync.Mutex
+	// Error channel for passing HTTP server errors to main goroutine
 	httpErrC = make(chan error, 1)
 )
 
@@ -50,13 +64,19 @@ func main() {
 		os.Exit(errExitCode)
 	}
 
-	reload() // for initial loading of config & starting of containers
+	err = readConfig()
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "cannot read config:", err.Error())
+		os.Exit(errExitCode)
+	}
 
 	err = removeStaleContainers()
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "cannot remove stale continers:", err.Error())
 		os.Exit(errExitCode)
 	}
+
+	reloadContainers()
 
 	http.HandleFunc("/health", handleHealth)
 	go runHTTPServer()
@@ -66,7 +86,12 @@ func main() {
 	for {
 		select {
 		case <-chanReload:
-			reload()
+			err := readConfig()
+			if err != nil {
+				fmt.Fprintln(os.Stderr, "cannot read config:", err.Error())
+				os.Exit(errExitCode)
+			}
+			reloadContainers()
 		case <-time.After(cfg.CheckInterval):
 			reloadContainers()
 		case err = <-httpErrC:
@@ -112,15 +137,6 @@ func handleHealth(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	mu.Unlock()
-}
-
-func reload() {
-	err := readConfig()
-	if err != nil {
-		fmt.Fprintln(os.Stderr, "cannot read config:", err.Error())
-		os.Exit(errExitCode)
-	}
-	reloadContainers()
 }
 
 func reloadContainers() {

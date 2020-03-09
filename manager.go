@@ -11,8 +11,6 @@ import (
 	"github.com/docker/docker/client"
 )
 
-const containerVersionKey = "com.cenkalti.container-manager.container-version"
-
 type Manager struct {
 	name       string
 	definition *Container

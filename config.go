@@ -10,13 +10,6 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-const defaultCheckInterval = 60 * time.Second
-
-var (
-	cfg         Config
-	definitions map[string]*Container
-)
-
 type Config struct {
 	Containers    map[string]*Container
 	CheckInterval time.Duration
