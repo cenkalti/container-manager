@@ -12,6 +12,7 @@ import (
 	"github.com/docker/docker/client"
 )
 
+// TODO parse durations in config
 // TODO run multiple containers of same name
 // TODO implement deploy policy
 // TODO health check endpoint
