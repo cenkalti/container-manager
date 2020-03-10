@@ -86,14 +86,6 @@ func (m *Manager) doReload() {
 		return
 	}
 	if con.Config.Labels[containerVersionKey] == newDef.Version {
-		if !con.State.Running {
-			m.log.Println("container not running, starting container")
-			err = cli.ContainerStart(ctx, con.ID, types.ContainerStartOptions{})
-			if err != nil {
-				m.log.Println("cannot start container:", err.Error())
-				return
-			}
-		}
 		return
 	}
 	m.log.Println("container definition changed, reloading")
