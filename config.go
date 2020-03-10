@@ -26,6 +26,7 @@ type Container struct {
 	StopSignal  string
 	StopTimeout time.Duration
 	NetworkMode string
+	Hostname    string
 	Env         map[string]string
 	Binds       []string
 	LogConfig   container.LogConfig
@@ -89,7 +90,7 @@ func getCheckInterval() time.Duration {
 	return cfg.CheckInterval
 }
 
-func (c *Container) containerConfig(name string) *container.Config {
+func (c *Container) dockerConfig() *container.Config {
 	env := make([]string, 0, len(c.Env))
 	for k, v := range c.Env {
 		env = append(env, k+"="+v)
@@ -99,7 +100,7 @@ func (c *Container) containerConfig(name string) *container.Config {
 		stopTimeout = &sec
 	}
 	return &container.Config{
-		Hostname:     name,
+		Hostname:     c.Hostname,
 		AttachStdout: true,         // Attach the standard output
 		AttachStderr: true,         // Attach the standard error
 		Env:          env,          // List of environment variable to set in the container

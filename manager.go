@@ -119,7 +119,7 @@ func (m *Manager) doCreate(ctx context.Context) error {
 	defer body.Close()
 	_, _ = io.Copy(ioutil.Discard, body)
 	m.log.Println("creating container")
-	resp, err := cli.ContainerCreate(ctx, m.definition.containerConfig(m.name), m.definition.hostConfig(), nil, m.name)
+	resp, err := cli.ContainerCreate(ctx, m.definition.dockerConfig(), m.definition.hostConfig(), nil, m.name)
 	if err != nil {
 		return err
 	}
