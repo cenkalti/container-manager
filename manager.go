@@ -2,6 +2,8 @@ package main
 
 import (
 	"context"
+	"io"
+	"io/ioutil"
 	"log"
 	"os"
 	"time"
@@ -98,6 +100,12 @@ func (m *Manager) doRemove(ctx context.Context) error {
 }
 
 func (m *Manager) doCreate(ctx context.Context) error {
+	body, err := cli.ImagePull(ctx, m.definition.Image, types.ImagePullOptions{})
+	if err != nil {
+		return err
+	}
+	defer body.Close()
+	go io.Copy(ioutil.Discard, body) // nolint: errcheck
 	m.log.Println("creating container")
 	resp, err := cli.ContainerCreate(ctx, m.definition.containerConfig(m.name), m.definition.hostConfig(), nil, m.name)
 	if err != nil {
