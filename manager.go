@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/docker/cli/cli/command"
+	cliflags "github.com/docker/cli/cli/flags"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/client"
 )
@@ -102,6 +103,10 @@ func (m *Manager) doRemove(ctx context.Context) error {
 
 func (m *Manager) doCreate(ctx context.Context) error {
 	dockerCli, err := command.NewDockerCli()
+	if err != nil {
+		return err
+	}
+	err = dockerCli.Initialize(cliflags.NewClientOptions())
 	if err != nil {
 		return err
 	}
