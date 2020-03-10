@@ -92,8 +92,6 @@ func main() {
 				os.Exit(errExitCode)
 			}
 			reloadContainers()
-		case <-time.After(cfg.CheckInterval):
-			reloadContainers()
 		case err = <-httpErrC:
 			fmt.Fprintln(os.Stderr, "cannot serve http:", err.Error())
 			os.Exit(errExitCode)
