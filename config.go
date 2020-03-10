@@ -61,13 +61,17 @@ func readConfig() error {
 	cfg = c
 	definitions = make(map[string]*Container, len(cfg.Containers))
 	for name, con := range cfg.Containers {
-		if con.Count > 1 { // nolint: gomnd
-			for i := uint(0); i < con.Count; i++ {
-				const containerIndexStart = 1
-				definitions[name+"-"+strconv.FormatUint(uint64(i+containerIndexStart), 10)] = con
+		count := con.Count
+		if count == 0 {
+			count = 1
+		}
+		const start = 1
+		for i := uint(start); i < count+start; i++ {
+			if i == start {
+				definitions[name] = con
+			} else {
+				definitions[name+"."+strconv.FormatUint(uint64(i), 10)] = con
 			}
-		} else {
-			definitions[name] = con
 		}
 	}
 	return nil
