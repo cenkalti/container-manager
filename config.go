@@ -11,14 +11,28 @@ import (
 )
 
 type Config struct {
-	Containers    map[string]*Container
+	Containers map[string]*Container
+
+	// Containers will be checked periodically with this interval value to match the definitions in config file.
+	// Config file does not get read on every check interval. It only gets read on startup and when SIGHUP is received.
 	CheckInterval time.Duration
-	ListenAddr    string
+
+	// HTTP server runs on this address for /health endpoint.
+	ListenAddr string
 }
 
 type Container struct {
-	Version     string
-	Count       uint
+	// Running container will get replaced only if version changes.
+	// You should update this value for every deploy.
+	// Usually you should set a value such as build number from your CI tool.
+	Version string
+
+	// Number of running copies of this container.
+	// An index number will be appended to the container name after first container.
+	// Example: ["foo", "foo.2", "foo.3", "foo.4"]
+	Count uint
+
+	// Following options are passed directly to the Docker Engine API when creating the container.
 	Image       string
 	WorkingDir  string
 	Entrypoint  []string
