@@ -4,7 +4,6 @@ import (
 	"context"
 	"log"
 	"os"
-	"sync"
 	"time"
 
 	"github.com/docker/docker/api/types"
@@ -15,23 +14,15 @@ type Manager struct {
 	name       string
 	definition *Container
 	log        *log.Logger
-	closeC     chan struct{}
-	closedC    chan struct{}
-	closeOnce  sync.Once
-	closed     bool
 	reloadC    chan struct{}
-	remove     bool
 }
 
-func Manage(name string, c *Container, remove bool) *Manager {
+func Manage(name string, c *Container) *Manager {
 	m := &Manager{
 		name:       name,
 		definition: c,
 		log:        log.New(os.Stderr, "["+name+"] ", log.LstdFlags),
-		closeC:     make(chan struct{}),
-		closedC:    make(chan struct{}),
 		reloadC:    make(chan struct{}, 1),
-		remove:     remove,
 	}
 	m.reloadC <- struct{}{}
 	go m.run()
@@ -39,39 +30,37 @@ func Manage(name string, c *Container, remove bool) *Manager {
 }
 
 func (m *Manager) run() {
-	defer close(m.closedC)
+	ctx := context.Background()
 	for {
-		if m.remove {
-			m.doRemove()
-		}
-		if m.closed {
-			return
-		}
 		select {
-		case <-m.closeC:
-			return
-		case <-time.After(time.Minute):
-			m.doReload()
+		case <-time.After(getCheckInterval()):
+			m.doReload(ctx)
 		case <-m.reloadC:
-			m.doReload()
+			m.doReload(ctx)
 		}
 	}
 }
 
-func (m *Manager) doReload() {
-	ctx := context.Background()
-	con, err := cli.ContainerInspect(ctx, m.name)
-	if client.IsErrNotFound(err) {
-		m.log.Println("container not found, creating new container")
-		resp, err := cli.ContainerCreate(ctx, m.definition.containerConfig(m.name), m.definition.hostConfig(), nil, m.name)
+func (m *Manager) doReload(ctx context.Context) {
+	newDef := getContainerDefinion(m.name)
+	if newDef == nil {
+		m.log.Println("container definition not found")
+		err := m.doRemove(ctx)
 		if err != nil {
-			m.log.Println("cannot create container:", err.Error())
+			m.log.Println("cannot remove container:", err.Error())
 			return
 		}
-		m.log.Println("starting new container")
-		err = cli.ContainerStart(ctx, resp.ID, types.ContainerStartOptions{})
+		mu.Lock()
+		delete(managers, m.name)
+		mu.Unlock()
+		return
+	}
+	con, err := cli.ContainerInspect(ctx, m.name)
+	if client.IsErrNotFound(err) {
+		m.log.Println("container not found")
+		err = m.doCreate(ctx)
 		if err != nil {
-			m.log.Println("cannot start container:", err.Error())
+			m.log.Println("cannot create container:", err.Error())
 			return
 		}
 		return
@@ -80,67 +69,42 @@ func (m *Manager) doReload() {
 		m.log.Println("cannot inspect container:", err.Error())
 		return
 	}
-	newDef := getContainerDefinion(m.name)
-	if newDef == nil {
-		m.remove = true
-		return
-	}
 	if con.Config.Labels[containerVersionKey] == newDef.Version {
+		// Nothing changed
 		return
 	}
 	m.log.Println("container definition changed, reloading")
-	if con.State.Running {
-		m.log.Println("stopping old container")
-		err = cli.ContainerStop(ctx, m.name, nil)
-		if err != nil {
-			m.log.Println("cannot stop container:", err.Error())
-			return
-		}
-	}
-	m.log.Println("removing old container")
-	err = cli.ContainerRemove(ctx, con.ID, types.ContainerRemoveOptions{Force: true})
+	err = m.doRemove(ctx)
 	if err != nil {
 		m.log.Println("cannot remove container:", err.Error())
 		return
 	}
 	m.definition = newDef
-	m.log.Println("creating new container")
-	resp, err := cli.ContainerCreate(ctx, m.definition.containerConfig(m.name), m.definition.hostConfig(), nil, m.name)
+	err = m.doCreate(ctx)
 	if err != nil {
 		m.log.Println("cannot create container:", err.Error())
 		return
 	}
-	m.log.Println("starting new container")
-	err = cli.ContainerStart(ctx, resp.ID, types.ContainerStartOptions{})
-	if err != nil {
-		m.log.Println("cannot start container:", err.Error())
-		return
-	}
 }
 
-func (m *Manager) doRemove() {
-	m.log.Println("container definition not found, stopping container")
-	ctx := context.Background()
+func (m *Manager) doRemove(ctx context.Context) error {
+	m.log.Println("stopping container")
 	err := cli.ContainerStop(ctx, m.name, nil)
 	if err != nil {
-		m.log.Println("cannot stop container:", err.Error())
+		return err
 	}
-	m.log.Println("removing stale container")
-	err = cli.ContainerRemove(ctx, m.name, types.ContainerRemoveOptions{Force: true})
-	if err != nil {
-		m.log.Println("cannot remove container:", err.Error())
-	}
-	mu.Lock()
-	delete(managers, m.name)
-	mu.Unlock()
-	m.doClose()
+	m.log.Println("removing container")
+	return cli.ContainerRemove(ctx, m.name, types.ContainerRemoveOptions{Force: true})
 }
 
-func (m *Manager) doClose() {
-	m.closeOnce.Do(func() {
-		m.closed = true
-		close(m.closeC)
-	})
+func (m *Manager) doCreate(ctx context.Context) error {
+	m.log.Println("creating container")
+	resp, err := cli.ContainerCreate(ctx, m.definition.containerConfig(m.name), m.definition.hostConfig(), nil, m.name)
+	if err != nil {
+		return err
+	}
+	m.log.Println("starting container")
+	return cli.ContainerStart(ctx, resp.ID, types.ContainerStartOptions{})
 }
 
 // Reload the definition from config and make necessary changes to container

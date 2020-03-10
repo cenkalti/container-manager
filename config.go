@@ -83,6 +83,12 @@ func getContainerDefinion(name string) *Container {
 	return definitions[name]
 }
 
+func getCheckInterval() time.Duration {
+	mu.Lock()
+	defer mu.Unlock()
+	return cfg.CheckInterval
+}
+
 func (c *Container) containerConfig(name string) *container.Config {
 	env := make([]string, 0, len(c.Env))
 	for k, v := range c.Env {

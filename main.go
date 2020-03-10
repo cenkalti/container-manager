@@ -147,7 +147,7 @@ func reloadContainers() {
 
 	for name, con := range definitions {
 		if _, ok := managers[name]; !ok {
-			managers[name] = Manage(name, con, false)
+			managers[name] = Manage(name, con)
 		}
 	}
 }
@@ -172,7 +172,7 @@ func removeStaleContainers() error {
 			continue
 		}
 		name := strings.TrimPrefix(con.Names[0], "/")
-		managers[name] = Manage(name, nil, true)
+		managers[name] = Manage(name, nil)
 	}
 	return nil
 }
