@@ -58,7 +58,7 @@ func main() {
 	}
 
 	var err error
-	cli, err = client.NewEnvClient()
+	cli, err = client.NewClientWithOpts(client.FromEnv)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "cannot create docker client:", err.Error())
 		os.Exit(errExitCode)

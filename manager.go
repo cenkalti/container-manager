@@ -8,6 +8,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/docker/cli/cli/command"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/client"
 )
@@ -100,12 +101,23 @@ func (m *Manager) doRemove(ctx context.Context) error {
 }
 
 func (m *Manager) doCreate(ctx context.Context) error {
-	body, err := cli.ImagePull(ctx, m.definition.Image, types.ImagePullOptions{})
+	dockerCli, err := command.NewDockerCli()
+	if err != nil {
+		return err
+	}
+	auth, err := command.RetrieveAuthTokenFromImage(ctx, dockerCli, m.definition.Image)
+	if err != nil {
+		return err
+	}
+	m.log.Println("pulling image:", m.definition.Image)
+	body, err := cli.ImagePull(ctx, m.definition.Image, types.ImagePullOptions{
+		RegistryAuth: auth,
+	})
 	if err != nil {
 		return err
 	}
 	defer body.Close()
-	go io.Copy(ioutil.Discard, body) // nolint: errcheck
+	_, _ = io.Copy(ioutil.Discard, body)
 	m.log.Println("creating container")
 	resp, err := cli.ContainerCreate(ctx, m.definition.containerConfig(m.name), m.definition.hostConfig(), nil, m.name)
 	if err != nil {
