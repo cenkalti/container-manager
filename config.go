@@ -114,5 +114,6 @@ func (c *Container) hostConfig() *container.HostConfig {
 		Binds:         c.Binds,                              // List of volume bindings for this container
 		NetworkMode:   container.NetworkMode(c.NetworkMode), // Network mode to use for the container
 		RestartPolicy: container.RestartPolicy{Name: "unless-stopped"},
+		LogConfig:     c.LogConfig,
 	}
 }
