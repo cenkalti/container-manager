@@ -61,6 +61,7 @@ func (m *Manager) doReload(ctx context.Context) {
 	}
 	con, err := cli.ContainerInspect(ctx, m.name)
 	if client.IsErrNotFound(err) {
+		m.definition = newDef
 		m.log.Println("container not found")
 		err = m.doCreate(ctx)
 		if err != nil {
