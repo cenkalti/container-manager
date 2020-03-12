@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"regexp"
 	"time"
 
 	"github.com/docker/cli/cli/command"
@@ -13,6 +14,8 @@ import (
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/client"
 )
+
+var networkEndpointErrorRegex = regexp.MustCompile(`^endpoint with name .* already exists in network (.*)$`)
 
 type Manager struct {
 	name       string
@@ -75,7 +78,19 @@ func (m *Manager) doReload(ctx context.Context) {
 		return
 	}
 	if con.Config.Labels[containerVersionKey] == newDef.Version {
-		// Nothing changed
+		// Try to recover from existing network endpoint error
+		match := networkEndpointErrorRegex.FindStringSubmatch(con.State.Error)
+		if len(match) > 1 { // nolint: gomnd
+			networkName := match[1]
+			m.log.Println("detected error:", con.State.Error)
+			err = cli.NetworkDisconnect(ctx, networkName, con.ID, true)
+			if err != nil {
+				m.log.Println("cannot disconnect container from network:", err.Error())
+				return
+			}
+		}
+		// Start container in "created" status.
+		// This can happen if container-manager creates a container but cannot start it due to an error.
 		if con.State.Status == "created" {
 			m.log.Println("container not running, starting container")
 			err = cli.ContainerStart(ctx, con.ID, types.ContainerStartOptions{})
@@ -84,6 +99,7 @@ func (m *Manager) doReload(ctx context.Context) {
 				return
 			}
 		}
+		// Definition did not get change. Do nothing.
 		return
 	}
 	m.log.Println("container definition changed, reloading")
