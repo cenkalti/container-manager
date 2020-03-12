@@ -76,6 +76,14 @@ func (m *Manager) doReload(ctx context.Context) {
 	}
 	if con.Config.Labels[containerVersionKey] == newDef.Version {
 		// Nothing changed
+		if con.State.Status == "created" {
+			m.log.Println("container not running, starting container")
+			err = cli.ContainerStart(ctx, con.ID, types.ContainerStartOptions{})
+			if err != nil {
+				m.log.Println("cannot start container:", err.Error())
+				return
+			}
+		}
 		return
 	}
 	m.log.Println("container definition changed, reloading")
