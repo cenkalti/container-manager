@@ -44,6 +44,7 @@ type Container struct {
 	Env         map[string]string
 	Binds       []string
 	LogConfig   container.LogConfig
+	Resources   container.Resources
 }
 
 func (c *Config) setDefaults() {
@@ -136,5 +137,6 @@ func (c *Container) hostConfig() *container.HostConfig {
 		NetworkMode:   container.NetworkMode(c.NetworkMode), // Network mode to use for the container
 		RestartPolicy: container.RestartPolicy{Name: "unless-stopped"},
 		LogConfig:     c.LogConfig,
+		Resources:     c.Resources,
 	}
 }
