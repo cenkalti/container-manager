@@ -66,6 +66,11 @@ func (m *Manager) doReload(ctx context.Context) {
 	if client.IsErrNotFound(err) {
 		m.definition = newDef
 		m.log.Println("container not found")
+		err = m.pullImage(ctx)
+		if err != nil {
+			m.log.Println("cannot pull image:", err.Error())
+			return
+		}
 		err = m.doCreate(ctx)
 		if err != nil {
 			m.log.Println("cannot create container:", err.Error())
@@ -109,6 +114,11 @@ func (m *Manager) doReload(ctx context.Context) {
 		return
 	}
 	m.definition = newDef
+	err = m.pullImage(ctx)
+	if err != nil {
+		m.log.Println("cannot pull image:", err.Error())
+		return
+	}
 	err = m.doCreate(ctx)
 	if err != nil {
 		m.log.Println("cannot create container:", err.Error())
@@ -126,7 +136,7 @@ func (m *Manager) doRemove(ctx context.Context) error {
 	return cli.ContainerRemove(ctx, m.name, types.ContainerRemoveOptions{Force: true})
 }
 
-func (m *Manager) doCreate(ctx context.Context) error {
+func (m *Manager) pullImage(ctx context.Context) error {
 	dockerCli, err := command.NewDockerCli()
 	if err != nil {
 		return err
@@ -148,6 +158,10 @@ func (m *Manager) doCreate(ctx context.Context) error {
 	}
 	defer body.Close()
 	_, _ = io.Copy(ioutil.Discard, body)
+	return nil
+}
+
+func (m *Manager) doCreate(ctx context.Context) error {
 	m.log.Println("creating container")
 	resp, err := cli.ContainerCreate(ctx, m.definition.dockerConfig(), m.definition.hostConfig(), nil, m.name)
 	if err != nil {
