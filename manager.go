@@ -108,17 +108,17 @@ func (m *Manager) doReload(ctx context.Context) {
 		return
 	}
 	m.log.Println("container definition changed, reloading")
+	err = m.pullImage(ctx)
+	if err != nil {
+		m.log.Println("cannot pull image:", err.Error())
+		return
+	}
 	err = m.doRemove(ctx)
 	if err != nil {
 		m.log.Println("cannot remove container:", err.Error())
 		return
 	}
 	m.definition = newDef
-	err = m.pullImage(ctx)
-	if err != nil {
-		m.log.Println("cannot pull image:", err.Error())
-		return
-	}
 	err = m.doCreate(ctx)
 	if err != nil {
 		m.log.Println("cannot create container:", err.Error())
