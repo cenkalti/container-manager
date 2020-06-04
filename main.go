@@ -167,6 +167,10 @@ func removeStaleContainers() error {
 			// Container didn't get started by container-manager
 			continue
 		}
+		if len(con.Names) == 0 {
+			// Container state is "removal in progress" and does not have any name.
+			continue
+		}
 		if inDefinitions(con.Names) {
 			// Container has a definition in config
 			continue
