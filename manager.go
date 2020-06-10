@@ -64,13 +64,13 @@ func (m *Manager) doReload(ctx context.Context) {
 	}
 	con, err := cli.ContainerInspect(ctx, m.name)
 	if client.IsErrNotFound(err) {
-		m.definition = newDef
 		m.log.Println("container not found")
-		err = m.pullImage(ctx)
+		err = m.pullImage(ctx, newDef.Image)
 		if err != nil {
 			m.log.Println("cannot pull image:", err.Error())
 			return
 		}
+		m.definition = newDef
 		err = m.doCreate(ctx)
 		if err != nil {
 			m.log.Println("cannot create container:", err.Error())
@@ -108,7 +108,7 @@ func (m *Manager) doReload(ctx context.Context) {
 		return
 	}
 	m.log.Println("container definition changed, reloading")
-	err = m.pullImage(ctx)
+	err = m.pullImage(ctx, newDef.Image)
 	if err != nil {
 		m.log.Println("cannot pull image:", err.Error())
 		return
@@ -136,7 +136,7 @@ func (m *Manager) doRemove(ctx context.Context) error {
 	return cli.ContainerRemove(ctx, m.name, types.ContainerRemoveOptions{Force: true})
 }
 
-func (m *Manager) pullImage(ctx context.Context) error {
+func (m *Manager) pullImage(ctx context.Context, image string) error {
 	dockerCli, err := command.NewDockerCli()
 	if err != nil {
 		return err
@@ -145,12 +145,12 @@ func (m *Manager) pullImage(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	auth, err := command.RetrieveAuthTokenFromImage(ctx, dockerCli, m.definition.Image)
+	auth, err := command.RetrieveAuthTokenFromImage(ctx, dockerCli, image)
 	if err != nil {
 		return err
 	}
-	m.log.Println("pulling image:", m.definition.Image)
-	body, err := cli.ImagePull(ctx, m.definition.Image, types.ImagePullOptions{
+	m.log.Println("pulling image:", image)
+	body, err := cli.ImagePull(ctx, image, types.ImagePullOptions{
 		RegistryAuth: auth,
 	})
 	if err != nil {
