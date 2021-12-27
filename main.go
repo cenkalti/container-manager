@@ -107,31 +107,50 @@ func runHTTPServer() {
 
 func handleHealth(w http.ResponseWriter, r *http.Request) {
 	errors := make([]string, 0)
+	warnings := make([]string, 0)
 	addError := func(s string) {
 		errors = append(errors, s)
+	}
+	addWarning := func(s string) {
+		warnings = append(warnings, s)
 	}
 	defer func() {
 		w.Header().Set("content-type", "application/json")
 		if len(errors) > 0 {
 			w.WriteHeader(http.StatusInternalServerError)
 		}
-		_ = json.NewEncoder(w).Encode(map[string]interface{}{"errors": errors})
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{"errors": errors, "warnings": warnings})
 	}()
 	containers, err := cli.ContainerList(r.Context(), types.ContainerListOptions{})
 	if err != nil {
 		addError(err.Error())
 		return
 	}
-	running := make(map[string]struct{}, len(containers))
+	running := make(map[string]map[string]string, len(containers))
 	for _, con := range containers {
 		for _, name := range con.Names {
-			running[name] = struct{}{}
+			image := strings.Split(con.Image, ":")
+			running[name] = map[string]string{
+				"ImageName":    image[0],
+				"ImageVersion": image[1],
+			}
 		}
 	}
 	mu.Lock()
-	for name := range managers {
-		if _, ok := running["/"+name]; !ok {
+	for name, manager := range managers {
+		container, ok := running["/"+name]
+		if !ok {
 			addError("container not running: " + name)
+			continue
+		}
+
+		definitionImage := strings.Split(manager.definition.Image, ":")
+		if container["ImageName"] != definitionImage[0] {
+			addWarning(name + ": image name mistmatch.(Expected: " + definitionImage[0] + ", Found: " + container["ImageName"] + ")")
+		}
+
+		if container["ImageVersion"] != definitionImage[1] {
+			addWarning(name + ": image version mistmatch.(Expected: " + definitionImage[1] + ", Found: " + container["ImageVersion"] + ")")
 		}
 	}
 	mu.Unlock()
