@@ -146,11 +146,11 @@ func handleHealth(w http.ResponseWriter, r *http.Request) {
 
 		definitionImage := strings.Split(manager.definition.Image, ":")
 		if container["ImageName"] != definitionImage[0] {
-			addWarning(name + ": image name mistmatch.(Expected: " + definitionImage[0] + ", Found: " + container["ImageName"] + ")")
+			addWarning(name + ": image name mismatch.(Expected: " + definitionImage[0] + ", Found: " + container["ImageName"] + ")")
 		}
 
 		if container["ImageVersion"] != definitionImage[1] {
-			addWarning(name + ": image version mistmatch.(Expected: " + definitionImage[1] + ", Found: " + container["ImageVersion"] + ")")
+			addWarning(name + ": image version mismatch.(Expected: " + definitionImage[1] + ", Found: " + container["ImageVersion"] + ")")
 		}
 	}
 	mu.Unlock()
