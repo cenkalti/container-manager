@@ -129,9 +129,12 @@ func handleHealth(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	mu.Lock()
-	for name := range managers {
+	for name, manager := range managers {
 		if _, ok := running["/"+name]; !ok {
-			addError("container not running: " + name)
+			addError("container is not running: " + name)
+		}
+		if manager.IsStuck() {
+			addError("container is stuck: " + name)
 		}
 	}
 	mu.Unlock()
