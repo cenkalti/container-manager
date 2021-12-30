@@ -5,7 +5,7 @@ go 1.17
 require (
 	github.com/docker/cli v0.0.0-20200303162255-7d407207c304
 	github.com/docker/docker v1.4.2-0.20200229013735-71373c6105e3
-	gopkg.in/yaml.v2 v2.2.8
+	gopkg.in/yaml.v2 v2.4.0
 )
 
 require (
