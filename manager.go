@@ -22,6 +22,21 @@ type Manager struct {
 	definition *Container
 	log        *log.Logger
 	reloadC    chan struct{}
+	actionTime time.Time
+}
+
+func (m *Manager) setActionTime() {
+	mu.Lock()
+	if m.actionTime.IsZero() {
+		m.actionTime = time.Now()
+	}
+	mu.Unlock()
+}
+
+func (m *Manager) unsetActionTime() {
+	mu.Lock()
+	m.actionTime = time.Time{}
+	mu.Unlock()
 }
 
 func Manage(name string, c *Container) *Manager {
@@ -52,11 +67,13 @@ func (m *Manager) doReload(ctx context.Context) {
 	newDef := getContainerDefinion(m.name)
 	if newDef == nil {
 		m.log.Println("container definition not found")
+		m.setActionTime()
 		err := m.doRemove(ctx)
 		if err != nil {
 			m.log.Println("cannot remove container:", err.Error())
 			return
 		}
+		m.unsetActionTime()
 		mu.Lock()
 		delete(managers, m.name)
 		mu.Unlock()
@@ -65,6 +82,7 @@ func (m *Manager) doReload(ctx context.Context) {
 	con, err := cli.ContainerInspect(ctx, m.name)
 	if client.IsErrNotFound(err) {
 		m.log.Println("container not found")
+		m.setActionTime()
 		err = m.pullImage(ctx, newDef.Image)
 		if err != nil {
 			m.log.Println("cannot pull image:", err.Error())
@@ -76,6 +94,7 @@ func (m *Manager) doReload(ctx context.Context) {
 			m.log.Println("cannot create container:", err.Error())
 			return
 		}
+		m.unsetActionTime()
 		return
 	}
 	if err != nil {
@@ -88,26 +107,32 @@ func (m *Manager) doReload(ctx context.Context) {
 		if len(match) > 1 { // nolint: gomnd
 			networkName := match[1]
 			m.log.Println("detected error:", con.State.Error)
+			m.setActionTime()
 			err = cli.NetworkDisconnect(ctx, networkName, con.ID, true)
 			if err != nil {
 				m.log.Println("cannot disconnect container from network:", err.Error())
 				return
 			}
+			m.unsetActionTime()
 		}
 		// Start container in "created" status.
 		// This can happen if container-manager creates a container but cannot start it due to an error.
 		if con.State.Status == "created" {
 			m.log.Println("container not running, starting container")
+			m.setActionTime()
 			err = cli.ContainerStart(ctx, con.ID, types.ContainerStartOptions{})
 			if err != nil {
 				m.log.Println("cannot start container:", err.Error())
 				return
 			}
+			m.unsetActionTime()
 		}
 		// Definition did not get change. Do nothing.
+		m.unsetActionTime()
 		return
 	}
 	m.log.Println("container definition changed, reloading")
+	m.setActionTime()
 	err = m.pullImage(ctx, newDef.Image)
 	if err != nil {
 		m.log.Println("cannot pull image:", err.Error())
@@ -124,6 +149,7 @@ func (m *Manager) doReload(ctx context.Context) {
 		m.log.Println("cannot create container:", err.Error())
 		return
 	}
+	m.unsetActionTime()
 }
 
 func (m *Manager) doRemove(ctx context.Context) error {
@@ -177,4 +203,15 @@ func (m *Manager) Reload() {
 	case m.reloadC <- struct{}{}:
 	default:
 	}
+}
+
+func (m *Manager) IsStuck() bool {
+	stopTimeout := m.definition.StopTimeout
+	if stopTimeout == 0 {
+		stopTimeout = 10 * time.Second // Docker default
+	}
+	if m.actionTime.IsZero() {
+		return false
+	}
+	return time.Since(m.actionTime) > stopTimeout+cfg.CheckInterval
 }
