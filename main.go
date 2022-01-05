@@ -133,15 +133,18 @@ func handleHealth(w http.ResponseWriter, r *http.Request) {
 	for name, manager := range managers {
 		if _, ok := running["/"+name]; !ok {
 			addError("container is not running: " + name)
+			return
 		}
 
 		if manager.IsStuck() {
 			addError("container is stuck: " + name)
+			return
 		}
 
 		_, err := exec.Command("docker", "exec", name, "echo").Output()
 		if err != nil {
 			addError("container is in an uknown state: " + name)
+			return
 		}
 	}
 	mu.Unlock()
