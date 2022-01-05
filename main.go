@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"os/exec"
 	"os/signal"
 	"strings"
 	"sync"
@@ -133,8 +134,14 @@ func handleHealth(w http.ResponseWriter, r *http.Request) {
 		if _, ok := running["/"+name]; !ok {
 			addError("container is not running: " + name)
 		}
+
 		if manager.IsStuck() {
 			addError("container is stuck: " + name)
+		}
+
+		_, err := exec.Command("docker", "exec", name, "echo").Output()
+		if err != nil {
+			addError("container is in an uknown state: " + name)
 		}
 	}
 	mu.Unlock()
