@@ -146,19 +146,19 @@ func handleHealth(w http.ResponseWriter, r *http.Request) {
 
 		execID, err := cli.ContainerExecCreate(ctx, name, execConfig)
 		if err != nil {
-			manager.log.Println("could not create exec config:", err.Error())
+			manager.log.Println("cannot create exec config:", err.Error())
 			return
 		}
 
 		err = cli.ContainerExecStart(ctx, execID.ID, types.ExecStartCheck{})
 		if err != nil {
-			manager.log.Println("cannot inspect container:", err.Error())
+			manager.log.Println("cannot start exec:", err.Error())
 			return
 		}
 
 		res, err := cli.ContainerExecInspect(ctx, execID.ID)
 		if err != nil {
-			manager.log.Println("could not inspect exec:", err.Error())
+			manager.log.Println("cannot inspect exec:", err.Error())
 			return
 		}
 
