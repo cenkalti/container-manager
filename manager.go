@@ -18,11 +18,13 @@ import (
 var networkEndpointErrorRegex = regexp.MustCompile(`^endpoint with name .* already exists in network (.*)$`)
 
 type Manager struct {
-	name       string
-	definition *Container
-	log        *log.Logger
-	reloadC    chan struct{}
-	actionTime time.Time
+	name             string
+	definition       *Container
+	log              *log.Logger
+	reloadC          chan struct{}
+	actionTime       time.Time
+	lastDockerExecID string
+	errHealthCheck   error
 }
 
 func (m *Manager) setActionTime() {
@@ -129,6 +131,7 @@ func (m *Manager) doReload(ctx context.Context) {
 		}
 		// Definition did not get change. Do nothing.
 		m.unsetActionTime()
+		m.CheckHealth()
 		return
 	}
 	m.log.Println("container definition changed, reloading")
@@ -214,4 +217,17 @@ func (m *Manager) IsStuck() bool {
 		return false
 	}
 	return time.Since(m.actionTime) > stopTimeout+cfg.CheckInterval
+}
+
+func (m *Manager) CheckHealth() {
+	var err error
+	ctx, cancel := context.WithTimeout(context.Background(), m.definition.CheckTimeout)
+	defer cancel()
+	m.lastDockerExecID, err = dockerExec(ctx, m.name, m.definition.CheckCmd, m.definition.CheckTimeout, m.lastDockerExecID)
+	if err != nil {
+		m.log.Println("health check failed: " + err.Error())
+	}
+	mu.Lock()
+	m.errHealthCheck = err
+	mu.Unlock()
 }

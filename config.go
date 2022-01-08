@@ -32,6 +32,12 @@ type Container struct {
 	// Example: ["foo", "foo.2", "foo.3", "foo.4"]
 	Count uint
 
+	// Command to run on each CheckInterval to determine if the container is healty.
+	CheckCmd []string
+
+	// Timeout for CheckCmd. Command must exit with 0 in CheckTimeout.
+	CheckTimeout time.Duration
+
 	// Following options are passed directly to the Docker Engine API when creating the container.
 	Image       string
 	WorkingDir  string
@@ -77,12 +83,9 @@ func readConfig() error {
 	cfg = c
 	definitions = make(map[string]*Container, len(cfg.Containers))
 	for name, con := range cfg.Containers {
-		count := con.Count
-		if count == 0 {
-			count = 1
-		}
+		con.setDefaults()
 		const start = 1
-		for i := uint(start); i < count+start; i++ {
+		for i := uint(start); i < con.Count+start; i++ {
 			if i == start {
 				definitions[name] = con
 			} else {
@@ -91,6 +94,18 @@ func readConfig() error {
 		}
 	}
 	return nil
+}
+
+func (con *Container) setDefaults() {
+	if con.Count == 0 {
+		con.Count = 1
+	}
+	if len(con.CheckCmd) == 0 {
+		con.CheckCmd = []string{"ls", "/"}
+	}
+	if con.CheckTimeout == 0 {
+		con.CheckTimeout = 10 * time.Second
+	}
 }
 
 func getContainerDefinion(name string) *Container {
