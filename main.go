@@ -129,42 +129,16 @@ func handleHealth(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	mu.Lock()
-
-	ctx := context.Background()
-	execConfig := types.ExecConfig{Cmd: []string{"echo"}}
-
 	for name, manager := range managers {
-		if _, ok := running["/"+name]; !ok {
-			addError("container is not running: " + name)
-			return
-		}
-
 		if manager.IsStuck() {
-			addError("container is stuck: " + name)
-			return
+			addError(name + ": manager is stuck")
 		}
-
-		execID, err := cli.ContainerExecCreate(ctx, name, execConfig)
-		if err != nil {
-			manager.log.Println("could not create exec config:", err.Error())
-			return
-		}
-
-		err = cli.ContainerExecStart(ctx, execID.ID, types.ExecStartCheck{})
-		if err != nil {
-			manager.log.Println("cannot inspect container:", err.Error())
-			return
-		}
-
-		res, err := cli.ContainerExecInspect(ctx, execID.ID)
-		if err != nil {
-			manager.log.Println("could not inspect exec:", err.Error())
-			return
-		}
-
-		if res.ExitCode != 0 {
-			addError("container is in an uknown state:" + name)
-			return
+		if _, ok := running["/"+name]; !ok {
+			addError(name + ": container is not running")
+		} else {
+			if err = manager.errHealthCheck; err != nil {
+				addError(name + ": health check failed: " + err.Error())
+			}
 		}
 	}
 	mu.Unlock()
