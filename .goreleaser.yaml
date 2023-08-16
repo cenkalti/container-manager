@@ -25,6 +25,30 @@ changelog:
     exclude:
       - '^docs:'
       - '^test:'
+aurs:
+  -
+    homepage: "https://github.com/cenkalti/container-manager"
+    description: "Manager for Docker containers"
+    maintainers:
+      - 'Cenk Alti <cenkalti@gmail.com>'
+    contributors:
+      - 'Cenk Alti <cenkalti@gmail.com>'
+    license: "MIT"
+    private_key: '{{ .Env.AUR_KEY }}'
+    git_url: 'ssh://aur@aur.archlinux.org/container-manager-bin.git'
+    # List of files that can contain user-made changes and should be preserved
+    backup:
+      - /etc/container-manager.yaml
+    package: |-
+      # bin
+      install -Dm755 "./container-manager" "${pkgdir}/usr/bin/container-manager"
+
+      # license
+      install -Dm644 "./LICENSE" "${pkgdir}/usr/share/licenses/container-manager/LICENSE"
+    # Git author used to commit to the repository.
+    commit_author:
+      name: goreleaserbot
+      email: bot@goreleaser.com
 
 # yaml-language-server: $schema=https://goreleaser.com/static/schema.json
 # vim: set ts=2 sw=2 tw=0 fo=cnqoj
