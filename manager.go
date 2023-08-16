@@ -12,6 +12,7 @@ import (
 	"github.com/docker/cli/cli/command"
 	cliflags "github.com/docker/cli/cli/flags"
 	"github.com/docker/docker/api/types"
+	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/client"
 )
 
@@ -157,7 +158,7 @@ func (m *Manager) doReload(ctx context.Context) {
 
 func (m *Manager) doRemove(ctx context.Context) error {
 	m.log.Println("stopping container")
-	err := cli.ContainerStop(ctx, m.name, nil)
+	err := cli.ContainerStop(ctx, m.name, container.StopOptions{})
 	if err != nil {
 		return err
 	}
@@ -192,7 +193,7 @@ func (m *Manager) pullImage(ctx context.Context, image string) error {
 
 func (m *Manager) doCreate(ctx context.Context) error {
 	m.log.Println("creating container")
-	resp, err := cli.ContainerCreate(ctx, m.definition.dockerConfig(), m.definition.hostConfig(), nil, m.name)
+	resp, err := cli.ContainerCreate(ctx, m.definition.dockerConfig(), m.definition.hostConfig(), nil, nil, m.name)
 	if err != nil {
 		return err
 	}
