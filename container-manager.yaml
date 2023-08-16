@@ -1,0 +1,3 @@
+listenaddr: 127.0.0.1:26662
+checkinterval: 60s
+containers: {}

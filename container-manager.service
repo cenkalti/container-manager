@@ -1,0 +1,14 @@
+[Unit]
+Description=Manager for Docker containers
+After=docker.service
+Wants=docker.service
+
+[Service]
+ExecStart=/usr/bin/container-manager -config /etc/container-manager.yaml
+ExecReload=/bin/kill -HUP $MAINPID
+TimeoutStartSec=0
+RestartSec=2
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
