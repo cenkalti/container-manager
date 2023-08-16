@@ -38,7 +38,7 @@ aurs:
     git_url: 'ssh://aur@aur.archlinux.org/container-manager-bin.git'
     # List of files that can contain user-made changes and should be preserved
     backup:
-      - /etc/container-manager.yaml
+      - etc/container-manager.yaml
     package: |-
       # bin
       install -Dm755 "./container-manager" "${pkgdir}/usr/bin/container-manager"
