@@ -7,16 +7,6 @@ on:
 permissions:
   contents: write
 
-builds:
-  env:
-    - CGO_ENABLED=0
-  ldflags:
-    - -s -w -X main.build={{.Version}}
-  goos:
-  - linux
-  goarch:
-  - amd64
-
 jobs:
   build:
     name: Build

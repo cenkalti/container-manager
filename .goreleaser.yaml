@@ -1,8 +1,12 @@
 builds:
-  - env:
+  - goos:
+    - linux
+    goarch:
+    - amd64
+    env:
       - CGO_ENABLED=0
-    goos:
-      - linux
+    ldflags:
+      - -s -w -X main.build={{.Version}}
 archives:
   - format: tar.gz
     name_template: >-
