@@ -10,6 +10,8 @@ Install latest released binary from [releases page](https://github.com/cenkalti/
 go get github.com/cenkalti/container-manager
 ```
 
+If you're using Arch, you can install `container-manager-bin` package from AUR.
+
 ## Usage
 
 - Put your container definitions in a config file.
