@@ -13,6 +13,8 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/docker/cli/cli/command"
+	"github.com/docker/cli/cli/flags"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/client"
 )
@@ -42,7 +44,7 @@ var (
 	// Containers currently managed by the app
 	managers = make(map[string]*Manager)
 	// Docker daemon client
-	cli *client.Client
+	cli client.APIClient
 	// Protects config and other global state
 	mu sync.Mutex
 	// Error channel for passing HTTP server errors to main goroutine
@@ -57,12 +59,18 @@ func main() {
 		return
 	}
 
-	var err error
-	cli, err = client.NewClientWithOpts(client.FromEnv)
+	dockerCLI, err := command.NewDockerCli()
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "cannot create docker client:", err.Error())
 		os.Exit(errExitCode)
 	}
+
+	err = dockerCLI.Initialize(flags.NewClientOptions())
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "cannot initialize docker client:", err.Error())
+		os.Exit(errExitCode)
+	}
+	cli = dockerCLI.Client()
 
 	err = readConfig()
 	if err != nil {
