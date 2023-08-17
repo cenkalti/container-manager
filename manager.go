@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"io"
-	"io/ioutil"
 	"log"
 	"os"
 	"regexp"
@@ -187,7 +186,7 @@ func (m *Manager) pullImage(ctx context.Context, image string) error {
 		return err
 	}
 	defer body.Close()
-	_, _ = io.Copy(ioutil.Discard, body)
+	_, _ = io.Copy(io.Discard, body)
 	return nil
 }
 

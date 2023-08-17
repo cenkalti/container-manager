@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"time"
 
 	"github.com/docker/docker/api/types"
@@ -62,7 +61,7 @@ func attachExec(ctx context.Context, name string, execID string, timeout time.Du
 		return err
 	}
 	// Stream stays open until the check command exits.
-	_, err = io.Copy(ioutil.Discard, resp.Reader)
+	_, err = io.Copy(io.Discard, resp.Reader)
 	if err != nil {
 		return err
 	}
