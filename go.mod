@@ -3,7 +3,7 @@ module github.com/cenkalti/container-manager
 go 1.21
 
 require (
-	github.com/docker/cli v24.0.5+incompatible
+	github.com/docker/cli v24.0.6+incompatible
 	github.com/docker/docker v24.0.6+incompatible
 	gopkg.in/yaml.v2 v2.4.0
 )
