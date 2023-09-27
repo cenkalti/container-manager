@@ -58,14 +58,16 @@ func (m *Manager) run() {
 	for {
 		select {
 		case <-time.After(getCheckInterval()):
-			m.doReload(ctx)
 		case <-m.reloadC:
-			m.doReload(ctx)
+		}
+		removed := m.doReload(ctx)
+		if removed {
+			return
 		}
 	}
 }
 
-func (m *Manager) doReload(ctx context.Context) {
+func (m *Manager) doReload(ctx context.Context) (removed bool) {
 	newDef := getContainerDefinion(m.name)
 	if newDef == nil {
 		m.log.Println("container definition not found")
@@ -79,7 +81,7 @@ func (m *Manager) doReload(ctx context.Context) {
 		mu.Lock()
 		delete(managers, m.name)
 		mu.Unlock()
-		return
+		return true
 	}
 	con, err := cli.ContainerInspect(ctx, m.name)
 	if client.IsErrNotFound(err) {
@@ -153,6 +155,7 @@ func (m *Manager) doReload(ctx context.Context) {
 		return
 	}
 	m.unsetActionTime()
+	return
 }
 
 func (m *Manager) doRemove(ctx context.Context) error {
