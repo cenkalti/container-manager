@@ -25,6 +25,13 @@ If you're using Arch, you can install `container-manager-bin` package from AUR.
 checkinterval: 60s
 listenaddr: 0.0.0.0:26662
 containers:
+  nginx:
+    version: 1
+    image: nginx
+    portbindings:
+      "80/tcp":
+        - hostip: "0.0.0.0"
+          hostport: 8080
   sleep:
     version: 1
     count: 4
