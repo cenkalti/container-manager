@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/docker/docker/api/types/container"
+	"github.com/docker/go-connections/nat"
 	"gopkg.in/yaml.v2"
 )
 
@@ -39,18 +40,19 @@ type Container struct {
 	CheckTimeout time.Duration
 
 	// Following options are passed directly to the Docker Engine API when creating the container.
-	Image       string
-	WorkingDir  string
-	Entrypoint  []string
-	Cmd         []string
-	StopSignal  string
-	StopTimeout time.Duration
-	NetworkMode string
-	Hostname    string
-	Env         map[string]string
-	Binds       []string
-	LogConfig   container.LogConfig
-	Resources   container.Resources
+	Image        string
+	WorkingDir   string
+	Entrypoint   []string
+	Cmd          []string
+	StopSignal   string
+	StopTimeout  time.Duration
+	NetworkMode  string
+	Hostname     string
+	Env          map[string]string
+	Binds        []string
+	PortBindings nat.PortMap
+	LogConfig    container.LogConfig
+	Resources    container.Resources
 }
 
 func (c *Config) setDefaults() {
@@ -149,6 +151,7 @@ func (c *Container) dockerConfig() *container.Config {
 func (c *Container) hostConfig() *container.HostConfig {
 	return &container.HostConfig{
 		Binds:         c.Binds,                              // List of volume bindings for this container
+		PortBindings:  c.PortBindings,                       // Port mapping between the exposed port (container) and the host
 		NetworkMode:   container.NetworkMode(c.NetworkMode), // Network mode to use for the container
 		RestartPolicy: container.RestartPolicy{Name: "unless-stopped"},
 		LogConfig:     c.LogConfig,
