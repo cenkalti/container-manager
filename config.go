@@ -150,10 +150,11 @@ func (c *Container) dockerConfig() *container.Config {
 
 func (c *Container) hostConfig() *container.HostConfig {
 	return &container.HostConfig{
-		Binds:         c.Binds,                              // List of volume bindings for this container
-		PortBindings:  c.PortBindings,                       // Port mapping between the exposed port (container) and the host
-		NetworkMode:   container.NetworkMode(c.NetworkMode), // Network mode to use for the container
-		RestartPolicy: container.RestartPolicy{Name: "unless-stopped"},
+		Binds:         c.Binds,                                         // List of volume bindings for this container
+		PortBindings:  c.PortBindings,                                  // Port mapping between the exposed port (container) and the host
+		NetworkMode:   container.NetworkMode(c.NetworkMode),            // Network mode to use for the container
+		ExtraHosts:    []string{"host.docker.internal:host-gateway"},   // List of extra hosts
+		RestartPolicy: container.RestartPolicy{Name: "unless-stopped"}, // Restart policy to be used for the container
 		LogConfig:     c.LogConfig,
 		Resources:     c.Resources,
 	}
