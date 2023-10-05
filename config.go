@@ -40,19 +40,23 @@ type Container struct {
 	CheckTimeout time.Duration
 
 	// Following options are passed directly to the Docker Engine API when creating the container.
-	Image        string
-	WorkingDir   string
-	Entrypoint   []string
-	Cmd          []string
-	StopSignal   string
-	StopTimeout  time.Duration
-	NetworkMode  string
-	Hostname     string
-	Env          map[string]string
-	Binds        []string
-	PortBindings nat.PortMap
-	LogConfig    container.LogConfig
-	Resources    container.Resources
+	Image       string
+	WorkingDir  string
+	Entrypoint  []string
+	Cmd         []string
+	StopSignal  string
+	StopTimeout time.Duration
+	NetworkMode string
+	Hostname    string
+	Env         map[string]string
+	Binds       []string
+	Ports       []string // in ip:public:private/proto format
+	LogConfig   container.LogConfig
+	Resources   container.Resources
+
+	// These filled after parsing Ports field.
+	portBindings nat.PortMap
+	exposedPorts nat.PortSet
 }
 
 func (c *Config) setDefaults() {
@@ -86,6 +90,10 @@ func readConfig() error {
 	definitions = make(map[string]*Container, len(cfg.Containers))
 	for name, con := range cfg.Containers {
 		con.setDefaults()
+		con.exposedPorts, con.portBindings, err = nat.ParsePortSpecs(con.Ports)
+		if err != nil {
+			return err
+		}
 		const start = 1
 		for i := uint(start); i < con.Count+start; i++ {
 			if i == start {
@@ -145,13 +153,14 @@ func (c *Container) dockerConfig() *container.Config {
 		Labels: map[string]string{
 			containerVersionKey: c.Version,
 		}, // List of labels set to this container
+		ExposedPorts: c.exposedPorts,
 	}
 }
 
 func (c *Container) hostConfig() *container.HostConfig {
 	return &container.HostConfig{
 		Binds:         c.Binds,                                         // List of volume bindings for this container
-		PortBindings:  c.PortBindings,                                  // Port mapping between the exposed port (container) and the host
+		PortBindings:  c.portBindings,                                  // Port mapping between the exposed port (container) and the host
 		NetworkMode:   container.NetworkMode(c.NetworkMode),            // Network mode to use for the container
 		ExtraHosts:    []string{"host.docker.internal:host-gateway"},   // List of extra hosts
 		RestartPolicy: container.RestartPolicy{Name: "unless-stopped"}, // Restart policy to be used for the container
