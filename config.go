@@ -47,6 +47,7 @@ type Container struct {
 	WorkingDir  string
 	Entrypoint  []string
 	Cmd         []string
+	User        string
 	StopSignal  string
 	StopTimeout time.Duration
 	NetworkMode string
@@ -148,6 +149,7 @@ func (c *Container) dockerConfig() *container.Config {
 		AttachStderr: true,         // Attach the standard error
 		Env:          env,          // List of environment variable to set in the container
 		Cmd:          c.Cmd,        // Command to run when starting the container
+		User:         c.User,       // User that will run the command(s) inside the container, also support user:group
 		Image:        c.Image,      // Name of the image as it was passed by the operator (e.g. could be symbolic)
 		WorkingDir:   c.WorkingDir, // Current directory (PWD) in the command will be launched
 		Entrypoint:   c.Entrypoint, // Entrypoint to run when starting the container
