@@ -39,6 +39,9 @@ type Container struct {
 	// Timeout for CheckCmd. Command must exit with 0 in CheckTimeout.
 	CheckTimeout time.Duration
 
+	// Do not pull image, assume it already exists.
+	NoPull bool
+
 	// Following options are passed directly to the Docker Engine API when creating the container.
 	Image       string
 	WorkingDir  string

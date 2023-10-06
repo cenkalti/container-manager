@@ -169,6 +169,9 @@ func (m *Manager) doRemove(ctx context.Context) error {
 }
 
 func (m *Manager) pullImage(ctx context.Context, image string) error {
+	if m.definition.NoPull {
+		return nil
+	}
 	dockerCli, err := command.NewDockerCli()
 	if err != nil {
 		return err
