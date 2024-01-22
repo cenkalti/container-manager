@@ -3,7 +3,7 @@ module github.com/cenkalti/container-manager
 go 1.21
 
 require (
-	github.com/docker/cli v24.0.6+incompatible
+	github.com/docker/cli v25.0.0+incompatible
 	github.com/docker/docker v24.0.6+incompatible
 	github.com/docker/go-connections v0.4.0
 	gopkg.in/yaml.v2 v2.4.0
@@ -18,6 +18,7 @@ require (
 	github.com/bugsnag/panicwrap v1.2.0 // indirect
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
 	github.com/cloudflare/cfssl v1.4.1 // indirect
+	github.com/distribution/reference v0.5.0 // indirect
 	github.com/docker/distribution v2.8.2+incompatible // indirect
 	github.com/docker/docker-credential-helpers v0.8.0 // indirect
 	github.com/docker/go v1.5.1-1.0.20160303222718-d30aec9fd63c // indirect
